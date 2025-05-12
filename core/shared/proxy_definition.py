@@ -9,7 +9,7 @@ class ProxyPrefixDefinition(BaseModel):
     url_prefix: str | None = None
     prefix: str | None = None
     method: str
-    has_params: bool = False
+    params: Any | None = None
     _data: dict[str, Any] | None = None
     _timeout: int = 1
     _name: str | None = None

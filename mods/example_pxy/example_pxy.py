@@ -1,17 +1,28 @@
 from core.shared.base import BaseProxyMod
-from core.shared.proxy_definition import ProxyDefinition
-from fastapi import Request, Response
-import httpx
+from core.shared.proxy_definition import ProxyDefinition, ProxyPrefixDefinition
+from core.factory.register_route import RegisterRoute
+from core.factory.route_factory import RouteFactory
+from core.sisyphus import Sisyphus
+from typing import List, Dict, Any, Optional, Callable
+from .json_placeholder import enhance_todo_item, filter_posts, enrich_comments, process_bytes_response
+from datetime import datetime
 
-class ExampleMod(BaseProxyMod):
-    def get_routes(self):
+class ExampleMod():
+    def __init__(self):
+        self.name = "ExampleMod"
+        self.description = "An Example Proxy Mod"
+        self.register_mod = RegisterRoute(ProxyDefinition(endpoint="/proxy/test", target_url="https://jsonplaceholder.typicode.com/"), "ExampleMod")
 
+        print("Registering " + self.name)
 
-        async def handler(request: Request, id: int):
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(f"https://jsonplaceholder.typicode.com/todos/{id}")
-                return Response(content=resp.content, media_type="application/json")
+        self.route()
 
-        return [
-            RouteDefinition(path="/todo/item/{id}", method="GET", handler=handler)
-        ]
+    def get_factory(self) -> RouteFactory:
+        return self.register_mod.Factory
+
+    def route(self):
+        self.register_mod.Factory.create_router(
+            ProxyPrefixDefinition(prefix="/item", url_prefix="todos", method="GET"))
+        self.register_mod.Factory.create_router(
+            ProxyPrefixDefinition(prefix="/item/{id}", url_prefix="todos/{id}", params={"id":"5"}, method="GET"))
+        # Start
