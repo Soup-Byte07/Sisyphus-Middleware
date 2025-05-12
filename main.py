@@ -1,31 +1,46 @@
-from fastapi import FastAPI, Depends
-from functools import lru_cache
+from fastapi import FastAPI
+from core.factory.route_factory import RouteFactory
+from core.shared.proxy_definition import ProxyDefinition, ProxyPrefixDefinition
+from pydantic import HttpUrl, BaseModel
+import uvicorn
+app = FastAPI()
 
-from typing_extensions import Annotated
-
-# Set env file
-import sisyphus_env
-
-@lru_cache
-def get_settings():
-    return sisyphus_env.SisyphusSettings()
-
-app = FastAPI(title="Sisyphus Middleware API", version="0.1.0");
-
-
-# Load paths
-from routers import frontend
-app.include_router(frontend.router)
-
+@app.get("/exit")
+async def exit():
+    import os
+    import signal
+    os.kill(os.getpid(), signal.SIGINT)
 
 @app.get("/")
-def read_root(settings: Annotated[sisyphus_env.SisyphusSettings, Depends(get_settings)]):
-    print(settings)
-    return { "MiddlewareName": settings.app_name, "Version": settings.version }
+async def root():
+    return {"message": "Hello World"}
 
-def main():
-    print("Hello from sisyphus-middleware!")
+
+def nothin_lol(data):
+    return { "data": "tricked nerd!", "oldData": data }
+
+# Set up the routes
+proxy_def = ProxyDefinition(
+    endpoint="/proxy/test",
+    target_url="http://192.168.1.157:8000/",
+)
+
+
+factory = RouteFactory(proxy_def)
+
+factory.create_router(ProxyPrefixDefinition(prefix="/item", method="GET"), nothin_lol)
+factory.create_router(ProxyPrefixDefinition(prefix="/bar", method="GET"), nothin_lol)
+
+
+# This is how the routes are registered
+app.include_router(factory.router)
+
+
+
+from core.factory.mod_loader import ModLoader
+
+mod_loader = ModLoader()
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
