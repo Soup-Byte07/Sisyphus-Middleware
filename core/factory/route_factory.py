@@ -1,3 +1,4 @@
+from pydantic import Callable, ClassName, Couroutine, Any, BaseModel, Response, Awaitable
 from core.logging.logging import check_post_require, log_route_creation
 from typing import Final
 from fastapi import APIRouter, Request, Depends
@@ -13,11 +14,13 @@ from core.scripts.transform import (
     convert_dict_to_array,
     convert_array_to_dict
 )
+from core.shared.proxy_definition import ProxyRouteDefinition
 
 method_creation = {
     "GET": lambda client, url, _headers, _params, _data: client.get(url, params=_params, headers=_headers),
     "POST": lambda client, url, _headers, _params, _data: client.post(url, params=_params, headers=_headers, json=_data),
     "PUT": lambda client, url, _headers, _params, _data: client.put(url, params=_params, headers=_headers, json=_data),
+    "PATCH": lambda client, url, _headers, _params, _data: client.patch(url, params=_params, headers=_headers, json=_data),
     "DELETE": lambda client, url, _headers, _params, _data: client.delete(url, params=_params, headers=_headers)
 }
 
@@ -27,47 +30,47 @@ class RouteFactory:
         self.proxy = proxy
         self.router: Final[APIRouter] = APIRouter()
     
-    def create_router_param(self, proxy_def, _callback = None) -> None:
-        handler = self._create_handler_path_param(proxy_def.method, proxy_def, _callback)
-        route_path = self.proxy.endpoint + proxy_def.prefix
+    def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _callback = None) -> None:
+        handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _callback)
+        route_path = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
                 "path": route_path,
                 "endpoint": handler,
-                "methods": [proxy_def.method],
+                "methods": [proxy_route_def.method],
             }
-        if proxy_def.params:
-            get_params = self.get_param_dict(proxy_def.params)
+        if proxy_route_def.params:
+            get_params = self.get_param_dict(proxy_route_def.params)
             async def wrapper(request: Request, path_params =get_params):
                 return await handler(request, **path_params)
             route_kwargs["endpoint"] = wrapper
         
-        if hasattr(proxy_def, '_name') and proxy_def._name:
-            route_kwargs["name"] = proxy_def._name
+        if hasattr(proxy_route_def, '_name') and proxy_route_def._name:
+            route_kwargs["name"] = proxy_route_def._name
 
-        if hasattr(proxy_def, '_tags') and proxy_def._tags:
-            route_kwargs["tags"] = proxy_def._tags
+        if hasattr(proxy_route_def, '_tags') and proxy_route_def._tags:
+            route_kwargs["tags"] = proxy_route_def._tags
 
         self.router.add_api_route(**route_kwargs)
 
-        log_route_creation(route_path, proxy_def.method, message="with parameters")
+        log_route_creation(route_path, proxy_route_def.method, message="with parameters")
 
         
-    def create_router(self, proxy_def, _callback = None) -> None:
-        handler = self._create_handler(proxy_def.method, proxy_def, _callback)
-        route_path = self.proxy.endpoint + proxy_def.prefix
+    def create_router(self, proxy_route_def: ProxyRouteDefinition, _callback = None) -> None:
+        handler = self._create_handler(proxy_route_def.method, proxy_route_def, _callback)
+        route_path = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
             "path": route_path,
             "endpoint": handler,
-            "methods": [proxy_def.method],
+            "methods": [proxy_route_def.method],
         }
-        if hasattr(proxy_def, '_name') and proxy_def._name:
-            route_kwargs["name"] = proxy_def._name
+        if hasattr(proxy_route_def, '_name') and proxy_route_def._name:
+            route_kwargs["name"] = proxy_route_def._name
 
-        if hasattr(proxy_def, '_tags') and proxy_def._tags:
-            route_kwargs["tags"] = proxy_def._tags
+        if hasattr(proxy_route_def, '_tags') and proxy_route_def._tags:
+            route_kwargs["tags"] = proxy_route_def._tags
 
         self.router.add_api_route(**route_kwargs)
-        log_route_creation(route_path, proxy_def.method)
+        log_route_creation(route_path, proxy_route_def.method)
 
 
 
@@ -120,20 +123,20 @@ class RouteFactory:
             print(f"Error processing request: {str(e)}")
             return request_data
 
-    def _create_handler_path_param(self, method: str, proxy_def_route, _callback = None):
-        async def handler(request: Request, **path_params):
-            url = str(self.proxy.target_url + proxy_def_route.url_prefix).format(**path_params)
+    def _create_handler_path_param(self, method: str, proxy_route_def: ProxyRouteDefinition, _callback: BaseModel | None = None):
+        async def handler(request: Request, **path_params: dict[str, str]):
+            url = str(str(self.proxy.target_url) + proxy_route_def.url_route).format(**path_params)
             return await self.httpx_request_handle(
-                url, request, method, proxy_def_route, _callback
+                url, request, method, proxy_route_def, _callback
             )
         return handler
 
-    def _create_handler(self, method: str, proxy_def_route, _callback = None):
+    def _create_handler(self, method: str, proxy_route_def: ProxyRouteDefinition, _callback = None):
         async def handler(request: Request):
-            url = str(self.proxy.target_url + proxy_def_route.url_prefix)
+            url = str(str(self.proxy.target_url) + proxy_route_def.url_route)
 
             return await self.httpx_request_handle(
-                url, request, method, proxy_def_route, _callback
+                url, request, method, proxy_route_def, _callback
             )
         return handler
 
@@ -157,7 +160,7 @@ class RouteFactory:
                 else:
                     request_body = proxy_def_route.data
             else:
-                if method in {"POST", "PUT"}:
+                if method in {"POST", "PUT", "PATCH"}:
                     try:
                         request_body = await request.json()
                     except:

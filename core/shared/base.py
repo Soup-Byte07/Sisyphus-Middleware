@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Callable
 from core.factory.route_factory import RouteFactory
-from core.shared.proxy_definition import ProxyDefinition, ProxyPrefixDefinition
+from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
 
 class BaseProxyMod(ABC):
     """
@@ -34,7 +34,7 @@ class BaseProxyMod(ABC):
         pass
         
     @abstractmethod
-    def get_routes(self) -> List[ProxyPrefixDefinition]:
+    def get_routes(self) -> List[ProxyRouteDefinition]:
         """
         Define the routes to be exposed by this proxy module.
         

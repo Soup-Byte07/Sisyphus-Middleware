@@ -14,7 +14,7 @@ class ProxyDefinition(BaseModel):
 
     @field_validator("endpoint", mode="after")
     @classmethod
-    def validate_endpoint(cls, value):
+    def validate_endpoint(cls, value: str) -> str:
         if not value.startswith("/"):
             exit_with_custom_message(f"Invalid prefix: {value}", "error")
             raise ValueError("Endpoint must start with '/'")
@@ -22,7 +22,7 @@ class ProxyDefinition(BaseModel):
     
     @field_validator("target_url", mode="after")
     @classmethod
-    def disallow_localhost(cls, value: str) -> str:
+    def disallow_localhost(cls, value: HttpUrl) -> HttpUrl:
         parsed = urlparse(str(value))
         if parsed.hostname in {"localhost", "127.0.0.1"}:
 
@@ -30,25 +30,28 @@ class ProxyDefinition(BaseModel):
             raise ValueError("Localhost URLs are not allowed.")
         return value
 
-class ProxyPrefixDefinition(BaseModel):
-    url_prefix: str | None = None
-    prefix: str | None = None
+class ProxyRouteDefinition(BaseModel):
+    url_route: str | None = None
+    route: str | None = None
     method: str
-    params: Any | None = None
-    data: Any = None
+    params: dict[str, Any] | None = None
+    data: dict[str, Any] | None = None
     _timeout: int = 1
     _name: str | None = None
     _tags: list[str] | None  = None
 
 
-    @field_validator("prefix", mode="after")
-    def validate_endpoint(cls, value) -> str:
+    @field_validator("route", mode="after")
+    @classmethod
+    def validate_route(cls, value: str) -> str:
         if not value.startswith("/"):
-            exit_with_custom_message(f"Invalid prefix: {value}", "error")
+            exit_with_custom_message(f"Invalid route: {value}", "error")
             sys.exit(1)
         return value
+
     @field_validator("method")
-    def validate_method(cls, value):
+    @classmethod
+    def validate_method(cls, value: str) -> str:
         allowed = {"GET", "POST", "PUT", "DELETE", "PATCH"}
         upper_value = value.upper()
         if upper_value not in allowed:
@@ -58,5 +61,15 @@ class ProxyPrefixDefinition(BaseModel):
             raise ValueError(f"Invalid HTTP method: {value}")
 
         return upper_value
+
+    @field_validator("url_route", mode="after")
+    @classmethod
+    def validate_url_route(cls, value: str) -> str:
+        if not value.startswith("/"):
+            exit_with_custom_message(f"Invalid URL route: {value}", "error")
+            sys.exit(1)
+        return value
+
+
 
 

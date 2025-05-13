@@ -13,8 +13,8 @@
 ### 🧱 Route Factory
 - [x] Implement `RouteFactory` with `create_router()` and `create_handler()`
 - [x] Handle dynamic path parameters (`/item/{id}`)
-- [ ] Validate route definitions before registration
-- [ ] Support all HTTP methods: GET, POST, PUT, DELETE, PATCH
+- [x] Validate route definitions before registration
+- [x] Support all HTTP methods: GET, POST, PUT, DELETE, PATCH
 - [ ] Allow route-level pre/post hooks
 
 ### 🌐 Request Proxying
@@ -29,7 +29,7 @@
 
 - [ ] Define and document the mod structure (`mod/my_mod/`)
 - [ ] Support dynamic mod loading at runtime
-- [ ] Allow mods to register routes programmatically (not just via JSON)
+- [x] Allow mods to register routes programmatically (not just via JSON)
 - [ ] Enable lifecycle hooks (e.g. `on_load`, `on_request`)
 - [ ] Validate mod schemas with helpful errors
 - [ ] Provide helper types and abstract base classes for mods
