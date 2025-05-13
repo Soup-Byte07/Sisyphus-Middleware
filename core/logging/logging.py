@@ -33,6 +33,21 @@ ch.setFormatter(CustomFormatter())
 
 logger.addHandler(ch)
 
+def custom_message(message: str, type: str = "info"):
+    
+    if(type == "info"):
+        logger.info(message)
+    elif(type == "debug"):
+        logger.debug(message)
+    elif(type == "warning"):
+        logger.warning(message)
+    elif(type == "error"):
+        logger.error(message)
+    elif(type == "critical"):
+        logger.critical(message)
+    else:
+        logger.info(message)
+
 def change_method_color(method: str):
     if method == "GET":
         method = f"\033[92m{method}\033[0m"  # Green

@@ -165,8 +165,6 @@ class RouteFactory:
                         if request_body:
                             request_body = self._process_request_data(request_body)
 
-
-
             check_post_require(method, request_body) # Check if POST request has data
             try:
                 proxy_response = await method_creation[method](

@@ -31,3 +31,4 @@ class ExampleMod():
         self.register_mod.Factory.create_router(
             ProxyPrefixDefinition(prefix="/custom/post", url_prefix="posts", method="POST", params=None )
         )
+
