@@ -10,7 +10,7 @@ class ProxyPrefixDefinition(BaseModel):
     prefix: str | None = None
     method: str
     params: Any | None = None
-    _data: dict[str, Any] | None = None
+    data: Any = None
     _timeout: int = 1
     _name: str | None = None
     _tags: list[str] | None  = None

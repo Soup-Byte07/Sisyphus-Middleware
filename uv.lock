@@ -393,6 +393,12 @@ wheels = [
 ]
 
 [[package]]
+name = "partial"
+version = "1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/59/b2cd9c62db244ee762e4a1d74c96dcfddcd54cdcc9b3c8d7cc756a4c3ab6/partial-1.0.tar.gz", hash = "sha256:cc725e8e33d04faad227e93ed3050166e054975a83801e33a7b174d110b1e572", size = 1548, upload-time = "2007-02-07T06:16:55Z" }
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -615,6 +621,7 @@ dependencies = [
     { name = "httpx" },
     { name = "numba" },
     { name = "numpy" },
+    { name = "partial" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -627,6 +634,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numba", specifier = ">=0.59.0" },
     { name = "numpy", specifier = ">=2.2.5" },
+    { name = "partial", specifier = ">=1.0" },
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", specifier = ">=0.26.0" },

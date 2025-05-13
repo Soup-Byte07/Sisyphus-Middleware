@@ -11,7 +11,7 @@ class ExampleMod():
     def __init__(self):
         self.name = "ExampleMod"
         self.description = "An Example Proxy Mod"
-        self.register_mod = RegisterRoute(ProxyDefinition(endpoint="/proxy/test", target_url="https://jsonplaceholder.typicode.com/"), "ExampleMod")
+        self.register_mod = RegisterRoute(ProxyDefinition(endpoint="/proxy/test", target_url="https://jsonplaceholder.typicode.com/"), self.name, self.description)
 
         print("Registering " + self.name)
 
@@ -23,6 +23,11 @@ class ExampleMod():
     def route(self):
         self.register_mod.Factory.create_router(
             ProxyPrefixDefinition(prefix="/item", url_prefix="todos", method="GET"))
-        self.register_mod.Factory.create_router(
+        self.register_mod.Factory.create_router_param(
             ProxyPrefixDefinition(prefix="/item/{id}", url_prefix="todos/{id}", params={"id":"5"}, method="GET"))
-        # Start
+        self.register_mod.Factory.create_router(
+            ProxyPrefixDefinition(prefix="/post", url_prefix="posts", method="POST", params=None, data={"title":"test", "body":"test", "userId":1} )
+        )
+        self.register_mod.Factory.create_router(
+            ProxyPrefixDefinition(prefix="/custom/post", url_prefix="posts", method="POST", params=None )
+        )

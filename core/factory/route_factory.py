@@ -1,10 +1,12 @@
-
-from os import path
-from typing import Final, Dict, Any, Callable, Optional
+from core.logging.logging import check_post_require, log_route_creation
+from typing import Final
 from fastapi import APIRouter, Request, Depends
 import httpx
-import numpy as np
 import json
+import inspect
+
+
+
 from core.scripts.transform import (
     fast_json_process,
     parallel_data_transform,
@@ -24,18 +26,21 @@ class RouteFactory:
     def __init__(self, proxy) -> None:
         self.proxy = proxy
         self.router: Final[APIRouter] = APIRouter()
-
-    def create_router(self, proxy_def, _callback = None) -> None:
-        handler = self._create_handler(proxy_def.method, proxy_def, _callback, proxy_def.params)
-
-        # Add tags and name if provided
+    
+    def create_router_param(self, proxy_def, _callback = None) -> None:
+        handler = self._create_handler_path_param(proxy_def.method, proxy_def, _callback)
+        route_path = self.proxy.endpoint + proxy_def.prefix
         route_kwargs = {
-            "path": self.proxy.endpoint + proxy_def.prefix,
-            "endpoint": handler,
-            "methods": [proxy_def.method],
-        }
-
-        # Add optional params if provided
+                "path": route_path,
+                "endpoint": handler,
+                "methods": [proxy_def.method],
+            }
+        if proxy_def.params:
+            get_params = self.get_param_dict(proxy_def.params)
+            async def wrapper(request: Request, path_params =get_params):
+                return await handler(request, **path_params)
+            route_kwargs["endpoint"] = wrapper
+        
         if hasattr(proxy_def, '_name') and proxy_def._name:
             route_kwargs["name"] = proxy_def._name
 
@@ -43,6 +48,39 @@ class RouteFactory:
             route_kwargs["tags"] = proxy_def._tags
 
         self.router.add_api_route(**route_kwargs)
+
+        log_route_creation(route_path, proxy_def.method, message="with parameters")
+
+        
+    def create_router(self, proxy_def, _callback = None) -> None:
+        handler = self._create_handler(proxy_def.method, proxy_def, _callback)
+        route_path = self.proxy.endpoint + proxy_def.prefix
+        route_kwargs = {
+            "path": route_path,
+            "endpoint": handler,
+            "methods": [proxy_def.method],
+        }
+        if hasattr(proxy_def, '_name') and proxy_def._name:
+            route_kwargs["name"] = proxy_def._name
+
+        if hasattr(proxy_def, '_tags') and proxy_def._tags:
+            route_kwargs["tags"] = proxy_def._tags
+
+        self.router.add_api_route(**route_kwargs)
+        log_route_creation(route_path, proxy_def.method)
+
+
+
+    def get_param_dict(self, param_names: list[str]):
+        def dependency_func(**kwargs):
+            return kwargs
+        dependency_func.__signature__ = inspect.Signature([
+
+            inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=str)
+            for name in param_names
+        ])
+        return Depends(dependency_func)
+
 
     
     def _process_response_data(self, response_data):
@@ -82,63 +120,70 @@ class RouteFactory:
             print(f"Error processing request: {str(e)}")
             return request_data
 
-    def _create_handler(self, method: str, proxy_def_route, _callback = None, params=Depends()):
-        try:
-            async def handler(request: Request,params=params):
-                url = str(self.proxy.target_url + proxy_def_route.url_prefix).format(**params)
-                print(url)
-                async with httpx.AsyncClient(
-                    headers={"User-Agent": "Sisyphus-Middleware"},
-                    timeout=getattr(proxy_def_route, "_timeout", 30)
-                ) as client:
-                    headers = None
-                    if self.proxy.header:
-                        headers = {k: v for k, v in request.headers.items()
-                                if k.lower() not in self.proxy.header}
+    def _create_handler_path_param(self, method: str, proxy_def_route, _callback = None):
+        async def handler(request: Request, **path_params):
+            url = str(self.proxy.target_url + proxy_def_route.url_prefix).format(**path_params)
+            return await self.httpx_request_handle(
+                url, request, method, proxy_def_route, _callback
+            )
+        return handler
 
-                    request_body = None
-                    if method in {"POST", "PUT"}:
-                        try:
-                            request_body = await request.json()
-                        except:
-                            request_body = await request.body()
-                            if request_body:
-                                request_body = self._process_request_data(request_body)
+    def _create_handler(self, method: str, proxy_def_route, _callback = None):
+        async def handler(request: Request):
+            url = str(self.proxy.target_url + proxy_def_route.url_prefix)
 
-                    params = dict(request.query_params)
+            return await self.httpx_request_handle(
+                url, request, method, proxy_def_route, _callback
+            )
+        return handler
 
-                    if hasattr(proxy_def_route, "_data") and proxy_def_route._data:
-                        if request_body and isinstance(request_body, dict):
-                            request_body.update(proxy_def_route._data)
-                        else:
-                            request_body = proxy_def_route._data
+    async def httpx_request_handle(self, url, request, method, proxy_def_route, _callback=None):
+        async with httpx.AsyncClient(
+            headers={"User-Agent": "Sisyphus-Middleware"},
+            timeout=getattr(proxy_def_route, "_timeout", 30)
+        ) as client:
+            headers = None
+            if self.proxy.header:
+                headers = {k: v for k, v in request.headers.items()
+                        if k.lower() not in self.proxy.header}
 
+
+            # Assign the data value to the request body
+            request_body = None
+            params = dict(request.query_params)
+            if hasattr(proxy_def_route, "data") and proxy_def_route.data:
+                if request_body and isinstance(request_body, dict):
+                    request_body.update(proxy_def_route.data)
+                else:
+                    request_body = proxy_def_route.data
+            else:
+                if method in {"POST", "PUT"}:
                     try:
-                        proxy_response = await method_creation[method](
-                            client,
-                            url,
-                            headers,
-                            params,
-                            request_body
-                        )
+                        request_body = await request.json()
+                    except:
+                        request_body = await request.body()
+                        if request_body:
+                            request_body = self._process_request_data(request_body)
 
-                        processed_content = self._process_response_data(proxy_response.content)
-                        if _callback:
-                            processed_content = _callback(processed_content)
 
-                        response_headers = {}
-                        if proxy_response.headers.get("content-type"):
-                            response_headers["content-type"] = proxy_response.headers["content-type"]
 
-                        return processed_content,
-                            
+            check_post_require(method, request_body) # Check if POST request has data
+            try:
+                proxy_response = await method_creation[method](
+                    client,
+                    url,
+                    headers,
+                    params,
+                    request_body
+                )
 
-                    except httpx.RequestError as e:
-                        error_response = {
-                            "error": f"Error proxying request: {str(e)}",
-                            "status": "failed"
-                        }
-                        return json.dumps(error_response).encode("utf-8"),
-            return handler
-        except Exception as e:
-            print(e)
+                processed_content = self._process_response_data(proxy_response.content)
+                if _callback:
+                    processed_content = _callback(processed_content)
+                return processed_content,
+            except httpx.RequestError as e:
+                error_response = {
+                    "error": f"Error proxying request: {str(e)}",
+                    "status": "failed"
+                }
+                return json.dumps(error_response).encode("utf-8"),
