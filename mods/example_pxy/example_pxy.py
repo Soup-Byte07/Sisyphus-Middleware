@@ -2,7 +2,7 @@ from core.scripts.out_callbacks import funny_haha_example
 from core.scripts.in_callbacks import input_example
 
 from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
-from core.factory.register_mod import register_mod
+from core.factory.register_mod import register_mod, RegisterMod
 from core.factory.route_factory import RouteFactory
 from mods.example_pxy.libs.auth.example_pxy_handle_authentication import ExamplePxyHandleAuthentication
 from mods.example_pxy.callbacks.out.parse_data import str_to_json
@@ -12,10 +12,10 @@ from core.sisyphus import Sisyphus
 class ExampleMod():
     def __init__(self, Sisyphus: Sisyphus):
 
-        self.id = "example_pxy"
-        self.name = "Example Pxy"
-        self.description = "An Example Proxy Mod"
-        self.register_mod = register_mod(
+        self.id: str = "example_pxy"
+        self.name: str = "Example Pxy"
+        self.description: str = "An Example Proxy Mod"
+        self.register_mod: RegisterMod = register_mod(
             self.id,
             {
                 "ProxyDefinition": ProxyDefinition(endpoint="/proxy/test", target_url="https://jsonplaceholder.typicode.com"),

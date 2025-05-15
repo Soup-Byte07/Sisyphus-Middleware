@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from core.authentication.authentication import AuthenticationHandler
 from core.logging.logging import check_post_require, log_route_creation
-from typing import Final, Any, Callable, Dict, Optional, Tuple, Awaitable
+from typing import Final, Any, Unknown
 from fastapi import APIRouter, Request,  Depends
 from httpx import AsyncClient, Response, Client, RequestError
 from core.types.types import AuthenticationTypes
@@ -17,7 +17,7 @@ from core.scripts.transform import (
     convert_dict_to_array,
     convert_array_to_dict
 )
-from core.shared.proxy_definition import ProxyRouteDefinition
+from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
 
 method_creation  = {
     "GET": lambda client, url, _headers, _params, _data, _auth: 
@@ -34,21 +34,23 @@ method_creation  = {
 
 
 class RouteFactory:
-    def __init__(self, proxy) -> None:
-        self.proxy = proxy
+    def __init__(self, proxy: ProxyDefinition) -> None:
+        self.proxy: ProxyDefinition = proxy
         self.router: Final[APIRouter] = APIRouter()
     
-    def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _in_callback = None, _out_callback=None) -> None:
+    def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _in_callback: Any = None, _out_callback: Any=None) -> None:
         handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
-        route_path: str = self.proxy.endpoint + proxy_route_def.route
+        route_path: str = str(self.proxy.endpoint) + str(proxy_route_def.route)
         route_kwargs = {
-                "path": route_path,
-                "endpoint": handler,
-                "methods": [proxy_route_def.method],
-            }
+            "path": route_path,
+            "endpoint": handler,
+            "methods": [proxy_route_def.method],
+            "name": None,
+            "tags": None
+        }
         if proxy_route_def.params:
             get_params = self.get_param_dict(proxy_route_def.params)
-            async def wrapper(request: Request, path_params =get_params):
+            async def wrapper(request: Request, path_params: Any  =get_params) -> tuple[Unknown | bytes] | tuple[bytes]:
                 return await handler(request, **path_params)
             route_kwargs["endpoint"] = wrapper
         
@@ -65,11 +67,13 @@ class RouteFactory:
         
     def create_router(self, proxy_route_def: ProxyRouteDefinition, _in_callback: Any =None, _out_callback: Any =None) -> None:
         handler = self._create_handler(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
-        route_path = self.proxy.endpoint + proxy_route_def.route
+        route_path = str(self.proxy.endpoint) + str(proxy_route_def.route)
         route_kwargs = {
             "path": route_path,
             "endpoint": handler,
             "methods": [proxy_route_def.method],
+            "name": None,
+            "tags": None
         }
         if hasattr(proxy_route_def, '_name') and proxy_route_def._name:
             route_kwargs["name"] = proxy_route_def._name
@@ -82,8 +86,8 @@ class RouteFactory:
 
 
 
-    def get_param_dict(self, param_names: list[str]):
-        def dependency_func(**kwargs):
+    def get_param_dict(self, param_names: list[str]) -> Any | None:
+        def dependency_func(**kwargs) -> dict[str, Unknown]:
             return kwargs
         dependency_func.__signature__ = inspect.Signature([
 
@@ -94,7 +98,7 @@ class RouteFactory:
 
 
     
-    def _process_response_data(self, response_data):
+    def _process_response_data(self, response_data) -> bytes | Unknown:
         try:
             if response_data and isinstance(response_data, bytes):
                 try:
