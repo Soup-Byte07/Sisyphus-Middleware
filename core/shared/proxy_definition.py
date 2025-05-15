@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, HttpUrl, ValidationError, ValidatorFunctionWrapHandler, field_validator
 from urllib.parse import urlparse
 from custom_core.logging import exit_with_custom_message
+from httpx import BasicAuth
 
 
 
@@ -12,14 +13,6 @@ class ProxyDefinition(BaseModel):
     target_url: HttpUrl
     header: set[str] | None = None
 
-    @field_validator("endpoint", mode="after")
-    @classmethod
-    def validate_endpoint(cls, value: str) -> str:
-        if not value.startswith("/"):
-            exit_with_custom_message(f"Invalid prefix: {value}", "error")
-            raise ValueError("Endpoint must start with '/'")
-        return value
-    
     @field_validator("target_url", mode="after")
     @classmethod
     def disallow_localhost(cls, value: HttpUrl) -> HttpUrl:
@@ -34,8 +27,10 @@ class ProxyRouteDefinition(BaseModel):
     url_route: str | None = None
     route: str | None = None
     method: str
-    params: dict[str, Any] | None = None
-    data: dict[str, Any] | None = None
+    params: dict[str, int | str] | None = None
+    query_params: dict[str, int | str] | None = None
+    data: Any | None = None,
+    auth: Any | None = None
     _timeout: int = 1
     _name: str | None = None
     _tags: list[str] | None  = None

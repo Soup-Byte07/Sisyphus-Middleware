@@ -1,12 +1,12 @@
 from core.sisyphus import Sisyphus
 from mods.example_pxy.example_pxy import ExampleMod
+from mods.hof.hof import Hof
 
 
 
-if __name__ == "__main__":
-    s = Sisyphus(8000)
+s = Sisyphus(8000)
 
-    _ExampleMod = ExampleMod()
-    s.register(_ExampleMod.get_factory().router)
+#_ExampleMod = ExampleMod(s)
+_Hof = Hof(s)
 
-    s.run()
+s.run()

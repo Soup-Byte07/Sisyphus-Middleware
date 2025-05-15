@@ -1,8 +1,11 @@
 from pydantic import BaseModel
+from core.authentication.authentication import AuthenticationHandler
 from core.logging.logging import check_post_require, log_route_creation
-from typing import Final
-from fastapi import APIRouter, Request, Depends
-import httpx
+from typing import Final, Any, Callable, Dict, Optional, Tuple, Awaitable
+from fastapi import APIRouter, Request,  Depends
+from httpx import AsyncClient, Response, Client, RequestError
+from core.types.types import AuthenticationTypes
+
 import json
 import inspect
 
@@ -16,12 +19,17 @@ from core.scripts.transform import (
 )
 from core.shared.proxy_definition import ProxyRouteDefinition
 
-method_creation = {
-    "GET": lambda client, url, _headers, _params, _data: client.get(url, params=_params, headers=_headers),
-    "POST": lambda client, url, _headers, _params, _data: client.post(url, params=_params, headers=_headers, json=_data),
-    "PUT": lambda client, url, _headers, _params, _data: client.put(url, params=_params, headers=_headers, json=_data),
-    "PATCH": lambda client, url, _headers, _params, _data: client.patch(url, params=_params, headers=_headers, json=_data),
-    "DELETE": lambda client, url, _headers, _params, _data: client.delete(url, params=_params, headers=_headers)
+method_creation  = {
+    "GET": lambda client, url, _headers, _params, _data, _auth: 
+        client.get(url, params=_params, headers=_headers, auth=_auth, follow_redirects=True),
+    "POST": lambda client, url, _headers, _params, _data, _auth:
+        client.post(url, params=_params, headers=_headers, json=_data, auth=_auth, follow_redirects=True),
+    "PUT": lambda client, url, _headers, _params, _data, _auth:
+        client.put(url, params=_params, headers=_headers, json=_data, auth=_auth, follow_redirects=True),
+    "PATCH": lambda client, url, _headers, _params, _data, _auth:
+        client.patch(url, params=_params, headers=_headers, json=_data, auth=_auth,  follow_redirects=True),
+    "DELETE": lambda client, url, _headers, _params, _data, _auth:
+        client.delete(url, params=_params, headers=_headers, auth=_auth, follow_redirects=True)
 }
 
 
@@ -32,7 +40,7 @@ class RouteFactory:
     
     def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _in_callback = None, _out_callback=None) -> None:
         handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
-        route_path = self.proxy.endpoint + proxy_route_def.route
+        route_path: str = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
                 "path": route_path,
                 "endpoint": handler,
@@ -55,7 +63,7 @@ class RouteFactory:
         log_route_creation(route_path, proxy_route_def.method, message="with parameters")
 
         
-    def create_router(self, proxy_route_def: ProxyRouteDefinition, _in_callback=None, _out_callback=None) -> None:
+    def create_router(self, proxy_route_def: ProxyRouteDefinition, _in_callback: Any =None, _out_callback: Any =None) -> None:
         handler = self._create_handler(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
         route_path = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
@@ -87,7 +95,6 @@ class RouteFactory:
 
     
     def _process_response_data(self, response_data):
-        """Process response data with Numba optimization."""
         try:
             if response_data and isinstance(response_data, bytes):
                 try:
@@ -140,20 +147,22 @@ class RouteFactory:
             )
         return handler
 
-    async def httpx_request_handle(self, url, request, method, proxy_def_route, _in_callback=None, _out_callback=None):
-        async with httpx.AsyncClient(
-            headers={"User-Agent": "Sisyphus-Middleware"},
+    async def httpx_request_handle(self, url: str, request: Request, method, proxy_def_route: ProxyRouteDefinition, _in_callback=None, _out_callback=None):
+        async with AsyncClient(
+            http2=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ProxyBot/1.0)"},
             timeout=getattr(proxy_def_route, "_timeout", 30)
         ) as client:
             headers = None
+            auth = proxy_def_route.auth
+
+            params = dict(request.query_params)
+            request_body = None
+
             if self.proxy.header:
                 headers = {k: v for k, v in request.headers.items()
                         if k.lower() not in self.proxy.header}
 
-
-            # Assign the data value to the request body
-            request_body = None
-            params = dict(request.query_params)
             if hasattr(proxy_def_route, "data") and proxy_def_route.data:
                 if request_body and isinstance(request_body, dict):
                     request_body.update(proxy_def_route.data)
@@ -178,14 +187,15 @@ class RouteFactory:
                     url,
                     headers,
                     params,
-                    request_body
+                    request_body,
+                    auth
                 )
 
                 processed_content = self._process_response_data(proxy_response.content)
                 if _out_callback:
                     processed_content = _out_callback(processed_content)
                 return processed_content,
-            except httpx.RequestError as e:
+            except RequestError as e:
                 error_response = {
                     "error": f"Error proxying request: {str(e)}",
                     "status": "failed"

@@ -48,7 +48,7 @@
 - [ ] Add cache expiry, invalidation options
 
 ### 📜 Logging
-- [ ] Implement centralized logging module
+- [x] Implement centralized logging module
 - [ ] Log requests/responses, errors, slow calls
 - [ ] Optional: support structured logs or external log sinks (e.g. Sentry)
 

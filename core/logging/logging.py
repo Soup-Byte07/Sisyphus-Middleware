@@ -33,6 +33,20 @@ ch.setFormatter(CustomFormatter())
 
 logger.addHandler(ch)
 
+def change_method_color(method: str):
+    if method == "GET":
+        method = f"\033[92m{method}\033[0m"  # Green
+    elif method == "POST":
+        method = f"\033[94m{method}\033[0m"  # Blue
+    elif method == "PUT":
+        method = f"\033[93m{method}\033[0m"  # Yellow
+    elif method == "DELETE":
+        method = f"\033[91m{method}\033[0m"  # Red
+    else:
+        method = f"\033[0m{method}\033[0m"  # Default color
+
+    return method
+
 def custom_message(message: str, type: str = "info"):
     
     if(type == "info"):
@@ -48,19 +62,9 @@ def custom_message(message: str, type: str = "info"):
     else:
         logger.info(message)
 
-def change_method_color(method: str):
-    if method == "GET":
-        method = f"\033[92m{method}\033[0m"  # Green
-    elif method == "POST":
-        method = f"\033[94m{method}\033[0m"  # Blue
-    elif method == "PUT":
-        method = f"\033[93m{method}\033[0m"  # Yellow
-    elif method == "DELETE":
-        method = f"\033[91m{method}\033[0m"  # Red
-    else:
-        method = f"\033[0m{method}\033[0m"  # Default color
+def register_mod_lib(mod_name:str, lib:str):
+    logger.info(f"Registering {mod_name} with {lib}")
 
-    return method
 
 def check_post_require(method, data):
     if(method =="POST" and data is None):
