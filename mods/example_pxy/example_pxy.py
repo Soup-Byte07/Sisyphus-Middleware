@@ -27,6 +27,6 @@ class ExampleMod():
             ProxyRouteDefinition(route="/custom/post", url_route="/posts", method="POST")
         )
         self.register_mod.Factory.create_router_param(
-            ProxyRouteDefinition(route="/patch/{id}", url_route="/posts/{id}", params={"id":5}, method="PATCH")
+            ProxyRouteDefinition(route="/patch/{id}", url_route="/patch/{id}", params={"id":5}, method="PATCH")
         )
 

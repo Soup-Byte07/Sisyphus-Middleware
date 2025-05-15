@@ -1,4 +1,4 @@
-from pydantic import Callable, ClassName, Couroutine, Any, BaseModel, Response, Awaitable
+from pydantic import BaseModel, Dict, Any
 from core.logging.logging import check_post_require, log_route_creation
 from typing import Final
 from fastapi import APIRouter, Request, Depends
@@ -140,7 +140,7 @@ class RouteFactory:
             )
         return handler
 
-    async def httpx_request_handle(self, url, request, method, proxy_def_route, _callback=None):
+    async def httpx_request_handle(self, url, request, method, proxy_def_route, _in_callback=None, _out_callback=None):
         async with httpx.AsyncClient(
             headers={"User-Agent": "Sisyphus-Middleware"},
             timeout=getattr(proxy_def_route, "_timeout", 30)
@@ -167,6 +167,9 @@ class RouteFactory:
                         request_body = await request.body()
                         if request_body:
                             request_body = self._process_request_data(request_body)
+            
+            if _in_callback:
+                request_body = _in_callback(request_body)
 
             check_post_require(method, request_body) # Check if POST request has data
             try:
@@ -179,8 +182,8 @@ class RouteFactory:
                 )
 
                 processed_content = self._process_response_data(proxy_response.content)
-                if _callback:
-                    processed_content = _callback(processed_content)
+                if _out_callback:
+                    processed_content = _out_callback(processed_content)
                 return processed_content,
             except httpx.RequestError as e:
                 error_response = {

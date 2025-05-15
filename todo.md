@@ -39,7 +39,7 @@
 ## 🛠️ Core Services
 
 ### 🧠 Shared Utilities
-- [ ] Prevent circular dependencies by using a `shared/` module
+- [X] Prevent circular dependencies by using a `shared/` module
 - [ ] Centralize common types (`ProxyDefinition`, `RouteSpec`, etc.)
 
 ### 📦 Caching
