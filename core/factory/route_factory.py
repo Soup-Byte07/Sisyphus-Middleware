@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Dict, Any
+from pydantic import BaseModel
 from core.logging.logging import check_post_require, log_route_creation
 from typing import Final
 from fastapi import APIRouter, Request, Depends
@@ -30,8 +30,8 @@ class RouteFactory:
         self.proxy = proxy
         self.router: Final[APIRouter] = APIRouter()
     
-    def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _callback = None) -> None:
-        handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _callback)
+    def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _in_callback = None, _out_callback=None) -> None:
+        handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
         route_path = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
                 "path": route_path,
@@ -55,8 +55,8 @@ class RouteFactory:
         log_route_creation(route_path, proxy_route_def.method, message="with parameters")
 
         
-    def create_router(self, proxy_route_def: ProxyRouteDefinition, _callback = None) -> None:
-        handler = self._create_handler(proxy_route_def.method, proxy_route_def, _callback)
+    def create_router(self, proxy_route_def: ProxyRouteDefinition, _in_callback=None, _out_callback=None) -> None:
+        handler = self._create_handler(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
         route_path = self.proxy.endpoint + proxy_route_def.route
         route_kwargs = {
             "path": route_path,
@@ -123,20 +123,20 @@ class RouteFactory:
             print(f"Error processing request: {str(e)}")
             return request_data
 
-    def _create_handler_path_param(self, method: str, proxy_route_def: ProxyRouteDefinition, _callback: BaseModel | None = None):
+    def _create_handler_path_param(self, method: str, proxy_route_def: ProxyRouteDefinition, _in_callback:BaseModel | None = None, _out_callback:BaseModel | None = None):
         async def handler(request: Request, **path_params: dict[str, str]):
             url = str(str(self.proxy.target_url) + proxy_route_def.url_route).format(**path_params)
             return await self.httpx_request_handle(
-                url, request, method, proxy_route_def, _callback
+                url, request, method, proxy_route_def, _in_callback, _out_callback
             )
         return handler
 
-    def _create_handler(self, method: str, proxy_route_def: ProxyRouteDefinition, _callback = None):
+    def _create_handler(self, method: str, proxy_route_def: ProxyRouteDefinition,  _in_callback:BaseModel | None = None, _out_callback:BaseModel | None = None):
         async def handler(request: Request):
             url = str(str(self.proxy.target_url) + proxy_route_def.url_route)
 
             return await self.httpx_request_handle(
-                url, request, method, proxy_route_def, _callback
+                url, request, method, proxy_route_def, _in_callback, _out_callback
             )
         return handler
 

@@ -1,0 +1,16 @@
+[author]
+created_by = "Soup-Byte07"
+contributors = ["Soup-Byte07", "Example"]
+created_at = "2025-05-15"
+
+[mod]
+mod_name = "Example Proxy"
+mod_id = "example_pxy"
+mod_description = "A nice boilerplate for creating a fastAPI proxy"
+mod_version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[mod_settings]
+global_timeout = 1000

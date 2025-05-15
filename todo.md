@@ -18,9 +18,9 @@
 - [ ] Allow route-level pre/post hooks
 
 ### 🌐 Request Proxying
-- [ ] Forward headers, query params, path params, and body
+- [x] Forward headers, query params, path params, and body
 - [ ] Handle JSON, form data, and multipart uploads
-- [ ] Return response status, headers, and content correctly
+- [x] Return response status, headers, and content correctly
 - [ ] Handle upstream timeouts and retries
 
 ---

@@ -1,3 +1,6 @@
+from core.scripts.out_callbacks import funny_haha_example
+from core.scripts.in_callbacks import input_example
+
 from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
 from core.factory.register_route import RegisterRoute
 from core.factory.route_factory import RouteFactory
@@ -21,7 +24,9 @@ class ExampleMod():
         self.register_mod.Factory.create_router_param(
             ProxyRouteDefinition(route="/item/{id}", url_route="/todos/{id}", params={"id":"5"}, method="GET"))
         self.register_mod.Factory.create_router(
-            ProxyRouteDefinition(route="/post", url_route="/posts", method="POST", data={"title":"test", "body":"test", "userId":1} )
+            ProxyRouteDefinition(route="/post", url_route="/posts", method="POST", data={"title":"test", "body":"test", "userId":1}),
+            _out_callback=funny_haha_example,
+            _in_callback=input_example
         )
         self.register_mod.Factory.create_router(
             ProxyRouteDefinition(route="/custom/post", url_route="/posts", method="POST")
