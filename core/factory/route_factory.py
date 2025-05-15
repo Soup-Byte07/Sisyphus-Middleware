@@ -155,7 +155,7 @@ class RouteFactory:
         ) as client:
             headers = None
             auth = proxy_def_route.auth
-
+            query_params = "" # ?example=1
             params = dict(request.query_params)
             request_body = None
 
@@ -179,12 +179,18 @@ class RouteFactory:
             
             if _in_callback:
                 request_body = _in_callback(request_body)
+            if proxy_def_route.query_params:
+                for key, value in proxy_def_route.query_params.items():
+                    if key not in params:
+                        params[key] = value
+                    else:
+                        params[key] = str(params[key]) + "," + str(value)
 
             check_post_require(method, request_body) # Check if POST request has data
             try:
                 proxy_response = await method_creation[method](
                     client,
-                    url,
+                    url + query_params,
                     headers,
                     params,
                     request_body,
