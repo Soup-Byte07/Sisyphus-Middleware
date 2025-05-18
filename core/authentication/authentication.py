@@ -8,7 +8,6 @@ class AuthenticationHandler(BaseModel):
     username: str
     password: SecretStr
     
-
     def authenticate(self, request: Request) -> Response:
         raise NotImplementedError("Subclasses should implement this method.")
 

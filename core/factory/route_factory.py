@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 from core.authentication.authentication import AuthenticationHandler
 from core.logging.logging import check_post_require, log_route_creation
-from typing import Final, Any, Unknown
+from typing import Final, Any
+
 from fastapi import APIRouter, Request,  Depends
 from httpx import AsyncClient, Response, Client, RequestError
 from core.types.types import AuthenticationTypes
@@ -50,7 +51,7 @@ class RouteFactory:
         }
         if proxy_route_def.params:
             get_params = self.get_param_dict(proxy_route_def.params)
-            async def wrapper(request: Request, path_params: Any  =get_params) -> tuple[Unknown | bytes] | tuple[bytes]:
+            async def wrapper(request: Request, path_params: Any  =get_params) -> Any:
                 return await handler(request, **path_params)
             route_kwargs["endpoint"] = wrapper
         
@@ -87,7 +88,7 @@ class RouteFactory:
 
 
     def get_param_dict(self, param_names: list[str]) -> Any | None:
-        def dependency_func(**kwargs) -> dict[str, Unknown]:
+        def dependency_func(**kwargs):
             return kwargs
         dependency_func.__signature__ = inspect.Signature([
 
@@ -98,7 +99,7 @@ class RouteFactory:
 
 
     
-    def _process_response_data(self, response_data) -> bytes | Unknown:
+    def _process_response_data(self, response_data) -> bytes:
         try:
             if response_data and isinstance(response_data, bytes):
                 try:
