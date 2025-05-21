@@ -28,7 +28,7 @@ class BasicAuthenticationHandler(RegisterLibAuthenticationHandler):
 
 
 class BearerAuthenticationHandler(RegisterLibAuthenticationHandler):
-    register_name: str = "BasicAuthenticationHandler"
+    register_name: str = "BearerAuthenticationHandler"
     def create_auth_header(self, token: str) -> str:
         return token
 
