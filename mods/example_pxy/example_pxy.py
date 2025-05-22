@@ -4,17 +4,21 @@ from core.scripts.in_callbacks import input_example
 from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
 from core.factory.register_mod import register_mod, RegisterMod
 from core.factory.route_factory import RouteFactory
+from core.shared.load_toml_config import LoadedTomlConfigs
 from mods.example_pxy.libs.auth.example_pxy_handle_authentication import ExamplePxyHandleAuthentication
 from mods.example_pxy.callbacks.out.parse_data import str_to_json
+
 
 from core.sisyphus import Sisyphus
 
 class ExampleMod():
-    def __init__(self, Sisyphus: Sisyphus):
+    def __init__(self, sisyphus: Sisyphus):
 
         self.id: str = "example_pxy"
         self.name: str = "Example Pxy"
         self.description: str = "An Example Proxy Mod"
+        self.sisyphus: Sisyphus = sisyphus
+
         self.register_mod: RegisterMod = register_mod(
             self.id,
             {
@@ -25,13 +29,16 @@ class ExampleMod():
             }
         )
 
+        # Load toml config
+        self.config = LoadedTomlConfigs(self.id).load_config("mods/example_pxy/example_pxy.toml")
+
         # Load authentication
         self.authentication_basic: ExamplePxyHandleAuthentication = ExamplePxyHandleAuthentication()
         # Load routes
         self.register_routes()
 
 
-        Sisyphus.register(self.get_factory().router)
+        self.sisyphus.register(self.get_factory().router)
 
     def get_factory(self) -> RouteFactory:
         return self.register_mod.Factory

@@ -1,0 +1,3 @@
+name = "Sisyphus Proxy"
+port = 8000
+load_cert = { load = false, keyfile="./.certs/private_key.pem", certfile="./.certs/certificate.pem" }

@@ -1,5 +1,8 @@
+from core.shared.base import get_project_root
+
 import logging
-import logging
+from pathlib import Path
+import os
 
 class CustomFormatter(logging.Formatter):
 
@@ -65,12 +68,23 @@ def custom_message(message: str, type: str = "info"):
 def register_mod_lib(mod_name:str, lib:str):
     logger.info(f"Registering {mod_name} with {lib}")
 
-
 def check_post_require(method, data):
     if(method =="POST" and data is None):
         method = change_method_color(method)
         logger.info(f"{method} is missing a request body: {data}")
         raise ValueError(f"{method} request requires data.")
-        
+
+def invalid_port(port:int) -> int:
+    if int(port) < 1 or int(port) > 65535:
+        logger.warning(f"Port {port} is not valid. Using default port 8000.")
+        return 8000
+    return port
+
 def log_route_creation(route: str, method: str, message: str = ""):
     logger.info(f"Created Route: {route} with method: {change_method_color(method)} {message}")
+
+def check_path_exists(path: str):
+    if not os.path.exists(path):
+        logger.warning(f"Path does not exist: {path}")
+        return False
+    return True
