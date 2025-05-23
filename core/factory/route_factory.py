@@ -1,14 +1,16 @@
 from pydantic import BaseModel
 from core.authentication.authentication import AuthenticationHandler
 from core.logging.logging import check_post_require, log_route_creation
-from typing import Final, Any
+from typing import Final, Any, Tuple
 
-from fastapi import APIRouter, Request,  Depends
+from fastapi import APIRouter, Request, Depends, Response as FastAPIResponse
 from httpx import AsyncClient, Response, Client, RequestError
 from core.types.types import AuthenticationTypes
 
 import json
 import inspect
+import mimetypes
+from fastapi.responses import StreamingResponse
 
 
 
