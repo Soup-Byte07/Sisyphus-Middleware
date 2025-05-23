@@ -160,39 +160,48 @@ class RouteFactory:
             headers={"User-Agent": "Mozilla/5.0 (compatible; ProxyBot/1.0)"},
             timeout=getattr(proxy_def_route, "_timeout", 30)
         ) as client:
-            headers = None
+            # Build headers properly - start with request headers and add proxy route headers
+            headers = dict(request.headers)
+            
+            # Add or override with proxy route headers if specified
+            if proxy_def_route.headers:
+                headers.update(proxy_def_route.headers)
+            
+            # Remove excluded headers if specified in proxy header filter
+            if self.proxy.header:
+                headers = {k: v for k, v in headers.items()
+                        if k.lower() not in {h.lower() for h in self.proxy.header}}
+            
             auth = proxy_def_route.auth
             query_params = "" # ?example=1
             params = dict(request.query_params)
             request_body = None
-
-            if self.proxy.header:
-                headers = {k: v for k, v in request.headers.items()
-                        if k.lower() not in self.proxy.header}
-
-            if hasattr(proxy_def_route, "data") and proxy_def_route.data:
+            # Handle request body for POST, PUT, PATCH methods
+            if method in {"POST", "PUT", "PATCH"}:
+                try:
+                    request_body = await request.json()
+                except:
+                    request_body = await request.body()
+                    if request_body:
+                        request_body = self._process_request_data(request_body)
+            
+            # Add proxy route data if specified
+            if proxy_def_route.data:
                 if request_body and isinstance(request_body, dict):
                     request_body.update(proxy_def_route.data)
                 else:
                     request_body = proxy_def_route.data
-            else:
-                if method in {"POST", "PUT", "PATCH"}:
-                    try:
-                        request_body = await request.json()
-                    except:
-                        request_body = await request.body()
-                        if request_body:
-                            request_body = self._process_request_data(request_body)
             
-            if _in_callback:
-                request_body = _in_callback(request_body)
+            # Apply input callback to request body
+            if _in_callback and request_body is not None:
+                request_body = _in_callback(request_body) or request_body
+                
             if proxy_def_route.query_params:
                 for key, value in proxy_def_route.query_params.items():
                     if key not in params:
                         params[key] = value
                     else:
                         params[key] = str(params[key]) + "," + str(value)
-
             check_post_require(method, request_body) # Check if POST request has data
             try:
                 proxy_response = await method_creation[method](
@@ -203,7 +212,6 @@ class RouteFactory:
                     request_body,
                     auth
                 )
-
                 processed_content = self._process_response_data(proxy_response.content)
                 if _out_callback:
                     processed_content = _out_callback(processed_content)

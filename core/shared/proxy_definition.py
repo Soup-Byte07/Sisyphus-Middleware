@@ -29,8 +29,9 @@ class ProxyRouteDefinition(BaseModel):
     method: str
     params: dict[str, int | str] | None = None
     query_params: dict[str, int | str] | None = None
-    data: Any | None = None,
+    data: Any | None = None
     auth: Any | None = None
+    headers: Any | None = None
     _timeout: int = 1
     _name: str | None = None
     _tags: list[str] | None  = None
