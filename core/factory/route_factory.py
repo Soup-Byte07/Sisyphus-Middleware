@@ -36,9 +36,6 @@ def _make_request_with_data(method_func, url, _headers, _params, _data, _auth):
         print(f"Using JSON:API content-type with data: {_data}")
         # Use content instead of json to preserve the custom content-type
         content = json.dumps(_data).encode('utf-8') if _data else None
-        print(content, _auth)
-
-
         headers = {
             'Content-Type': 'application/vnd.api+json',
             'Authorization': _auth
@@ -243,11 +240,9 @@ class RouteFactory:
         return handler
 
     def requests_request_handle(self, url: str, request: Request, method, proxy_def_route: ProxyRouteDefinition, _in_callback=None, _out_callback=None):
-        # Start with headers from route definition
         headers = dict(proxy_def_route.headers) if proxy_def_route.headers else {}
         headers["User-Agent"] = "Mozilla/5.0 (compatible; ProxyBot/1.0)"
         
-        # Add relevant headers from incoming request  
         print(f"Incoming request headers: {dict(request.headers)}")
         for key, value in request.headers.items():
             if key.lower() in {'content-type', 'authorization', 'accept'}:
@@ -255,22 +250,16 @@ class RouteFactory:
                 if key.lower() not in [k.lower() for k in headers.keys()]:
                     headers[key] = value
         print(f"Final headers for request: {headers}")
-        
-        # Remove excluded headers specified in proxy configuration
         if self.proxy.header:
             headers = {k: v for k, v in headers.items()
                     if k.lower() not in {h.lower() for h in self.proxy.header}}
         
-        auth = proxy_def_route.auth
         query_params = "" # ?example=1
         params = dict(request.query_params)
         request_body = None
         
-        # Handle request body for methods that support it
         if method in {"POST", "PUT", "PATCH"}:
             try:
-                # Since this is synchronous, we can't use await
-                # This would need to be called from an async context that handles the request body
                 import asyncio
                 request_body = asyncio.run(request.json()) if hasattr(request, 'json') else None
             except:
@@ -300,8 +289,6 @@ class RouteFactory:
                     params[key] = str(params[key]) + "," + str(value)
         
         check_post_require(method, request_body) # Check if POST request has data
-        print(f"Making {method} request to: {url + query_params}")
-        print(f"Request body being sent: {request_body}")
         
         try:
             # Use requests library instead of httpx
@@ -353,10 +340,6 @@ class RouteFactory:
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
-            print(f"Response status: {proxy_response.status_code}")
-            print(f"Response headers: {dict(proxy_response.headers)}")
-            print(f"Response content: {proxy_response.content[:500]}...")  # First 500 chars
-            
             processed_content = self._process_response_data(proxy_response.content)
             if _out_callback:
                 processed_content = _out_callback(processed_content)
@@ -379,13 +362,11 @@ class RouteFactory:
             headers = dict(proxy_def_route.headers) if proxy_def_route.headers else {}
             
             # Add relevant headers from incoming request  
-            print(f"Incoming request headers: {dict(request.headers)}")
             for key, value in request.headers.items():
                 if key.lower() in {'content-type', 'authorization', 'accept'}:
                     # Avoid duplicate headers by checking if key already exists
                     if key.lower() not in [k.lower() for k in headers.keys()]:
                         headers[key] = value
-            print(f"Final headers for request: {headers}")
             
             # Remove excluded headers specified in proxy configuration
             if self.proxy.header:
@@ -422,8 +403,6 @@ class RouteFactory:
                     else:
                         params[key] = str(params[key]) + "," + str(value)
             check_post_require(method, request_body) # Check if POST request has data
-            print(f"Making {method} request to: {url + query_params}")
-            print(f"Request body being sent: {request_body}")
             try:
                 proxy_response = await method_creation[method](
                     client,
@@ -433,10 +412,6 @@ class RouteFactory:
                     request_body,
                     auth
                 )
-                print(f"Response status: {proxy_response.status_code}")
-                print(f"Response headers: {dict(proxy_response.headers)}")
-                print(f"Response content: {proxy_response.content[:500]}...")  # First 500 chars
-                
                 processed_content = self._process_response_data(proxy_response.content)
                 if _out_callback:
                     processed_content = _out_callback(processed_content)
