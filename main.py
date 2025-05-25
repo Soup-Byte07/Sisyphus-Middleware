@@ -6,7 +6,6 @@ from mods.hof.hof import Hof
 
 
 s = Sisyphus()
-
 _ExampleMod = ExampleMod(s)
 _Hof = Hof(s)
 

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, SecretStr
 from fastapi import Request, Response
 from httpx import BasicAuth
+from base64 import b64encode
 
 from core.logging.logging import register_mod_lib
 
@@ -25,7 +26,9 @@ class BasicAuthenticationHandler(RegisterLibAuthenticationHandler):
     register_name: str = "BasicAuthenticationHandler"
     def create_auth_header(self) -> BasicAuth:
         return BasicAuth(self.auth_handler.username, self.auth_handler.password.get_secret_value())
-
+    def create_raw_header(self):
+        tokenized = b64encode(f"{self.auth_handler.username}:{self.auth_handler.password.get_secret_value()}".encode('utf-8')).decode("ascii")
+        return f'Basic {tokenized}'
 
 class BearerAuthenticationHandler(RegisterLibAuthenticationHandler):
     register_name: str = "BearerAuthenticationHandler"

@@ -1,5 +1,5 @@
 name = "Sisyphus Proxy"
-port = 80
+port = 8000
 
 [load_cert]
 load = false
