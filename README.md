@@ -24,13 +24,6 @@ uv sync
 # run sisyphus
 python main.py
 
-
-```
-
-## Core Usage
-
-```python
-
 ```
 
 ## Creating Custom Proxy Modules
