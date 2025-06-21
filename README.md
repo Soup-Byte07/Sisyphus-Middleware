@@ -110,9 +110,6 @@ dependencies = []
 [mod_settings]
 global_timeout = 1000
 ```
-```
-```
-
 
 ### Loading Custom Modules
 
@@ -128,7 +125,13 @@ s = Sisyphus()
 LoadExampleMod = ExampleMod(s)
 
 s.run()
-
+````
+```
+```
+```
+```
+```
+```
 ## Development
 
 ### Requirements
