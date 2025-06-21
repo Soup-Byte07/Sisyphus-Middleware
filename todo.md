@@ -15,7 +15,7 @@
 - [x] Handle dynamic path parameters (`/item/{id}`)
 - [x] Validate route definitions before registration
 - [x] Support all HTTP methods: GET, POST, PUT, DELETE, PATCH
-- [ ] Allow route-level pre/post hooks
+- [X] Allow route-level pre/post hooks
 
 ### 🌐 Request Proxying
 - [x] Forward headers, query params, path params, and body

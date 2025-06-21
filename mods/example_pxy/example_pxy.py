@@ -6,7 +6,7 @@ from core.factory.register_mod import register_mod, RegisterMod
 from core.factory.route_factory import RouteFactory
 from core.shared.load_toml_config import LoadedTomlConfigs
 from mods.example_pxy.libs.auth.example_pxy_handle_authentication import ExamplePxyHandleAuthentication
-from mods.example_pxy.callbacks.out.parse_data import str_to_json
+from mods.example_pxy.hooks.out.parse_data import str_to_json
 
 
 from core.sisyphus import Sisyphus
@@ -14,9 +14,11 @@ from core.sisyphus import Sisyphus
 class ExampleMod():
     def __init__(self, sisyphus: Sisyphus):
 
-        self.id: str = "example_pxy"
-        self.name: str = "Example Pxy"
-        self.description: str = "An Example Proxy Mod"
+        # Load toml config
+        self.config = LoadedTomlConfigs(self.id).load_config("mods/example_pxy/example_pxy.toml")
+        self.id: str = self.config.mod.mod_id
+        self.name: str = self.config.mod.mod_name
+        self.description: str = self.config.mod.mod_description
         self.sisyphus: Sisyphus = sisyphus
 
         self.register_mod: RegisterMod = register_mod(
@@ -29,14 +31,10 @@ class ExampleMod():
             }
         )
 
-        # Load toml config
-        self.config = LoadedTomlConfigs(self.id).load_config("mods/example_pxy/example_pxy.toml")
-
         # Load authentication
         self.authentication_basic: ExamplePxyHandleAuthentication = ExamplePxyHandleAuthentication()
         # Load routes
         self.register_routes()
-
 
         self.sisyphus.register(self.get_factory().router)
 

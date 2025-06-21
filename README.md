@@ -1,6 +1,6 @@
 # Sisyphus-Middleware
 
-A modular proxy server library built with FastAPI, featuring high-performance data processing with Numba optimization and a powerful plugin system.
+A modular proxy server library built with FastAPI, featuring a much more easier and modular way of creating proxies.
 
 ## Features
 
@@ -8,39 +8,29 @@ A modular proxy server library built with FastAPI, featuring high-performance da
 - Plugin system for creating custom proxy modules
 - Dynamic module loading and registration
 - Route factory for dynamic endpoint creation
-- High-performance data processing with Numba JIT compilation
 - JSON request/response optimization
 
 ## Installation
 
 ```bash
 # Install with pip
-pip install -e .
+
+source .venv/source/activate.{terminal_name}
+# activate.fish
+
+# install/update packages
+uv sync
+
+# run sisyphus
+python main.py
+
+
 ```
 
 ## Core Usage
 
 ```python
-from fastapi import FastAPI
-from core.factory.route_factory import RouteFactory
-from core.shared.proxy_definition import ProxyDefinition, ProxyPrefixDefinition
 
-app = FastAPI()
-
-# Define your proxy endpoint
-proxy_def = ProxyDefinition(
-    endpoint="/proxy/test",
-    target_url="https://jsonplaceholder.typicode.com"
-)
-
-# Create a factory with your proxy definition
-factory = RouteFactory(proxy_def)
-
-# Create a router with prefix and method
-factory.create_router(ProxyPrefixDefinition(prefix="/item/{id}", method="GET"))
-
-# Include the router in your FastAPI app
-app.include_router(factory.router)
 ```
 
 ## Creating Custom Proxy Modules
@@ -53,100 +43,98 @@ Create a new directory under the `mods` folder with the following structure:
 
 ```
 mods/
-└── your_proxy_mod/
+└── funny_mod/
     ├── __init__.py
-    ├── your_proxy_mod.py
-    └── your_proxy_mod.json (or your_proxy_mod.toml)
+    ├── funny_mod.py
+    └── funny_mod.toml
 ```
 
 ### Implementing a Custom Proxy Module
 
-1. Create a class that inherits from `BaseProxyMod` in your main module file:
+1. Now in the funny_mod.py. We can create our Mod class:
 
 ```python
-from core.shared.base import BaseProxyMod
-from core.shared.proxy_definition import ProxyDefinition, ProxyPrefixDefinition
-from typing import List, Optional, Callable
 
-class YourProxyMod(BaseProxyMod):
-    def get_proxy_definition(self) -> ProxyDefinition:
-        # You can use self.config to access configuration values
-        target_url = self.config.get("target_url", "https://api.example.com")
+from core.shared.proxy_definition import ProxyDefinition, ProxyRouteDefinition
+from core.factory.register_mod import register_mod, RegisterMod
+from core.factory.route_factory import RouteFactory
+from core.shared.load_toml_config import LoadedTomlConfigs
+from core.sisyphus import Sisyphus
 
-        return ProxyDefinition(
-            endpoint="/your-api",
-            target_url=target_url,
-            header={"user-agent"}  # Headers to exclude from forwarding
+class FunnyMod():
+    def __init__(self, sisyphus: Sisyphus):
+        # Load toml config
+        self.config = LoadedTomlConfigs(self.id).load_config("mods/funny_mod/funny_mod.toml")
+
+        self.id: str = self.config.mod.mod_id
+        self.name: str = self.config.mod.mod_name
+        self.description: str = self.config.mod.mod_description
+        self.sisyphus: Sisyphus = sisyphus
+
+        self.register_mod: RegisterMod = register_mod(
+            self.id,
+            {
+                "ProxyDefinition": ProxyDefinition(endpoint="/proxy/test", target_url="https://jsonplaceholder.typicode.com"),
+                "mod_name": self.name,
+                "mod_id": self.id,
+                "mod_description": self.description
+            }
         )
 
-    def get_routes(self) -> List[ProxyPrefixDefinition]:
-        return [
-            ProxyPrefixDefinition(
-                prefix="/resource/{id}",
-                url_prefix="/resource/{id}",
-                method="GET"
-            ),
-            ProxyPrefixDefinition(
-                prefix="/items",
-                url_prefix="/items",
-                method="GET"
-            )
-        ]
+        # Load routes
+        self.register_routes()
+        self.sisyphus.register(self.get_factory().router)
 
-    def get_callbacks(self) -> List[Optional[Callable]]:
-        def transform_resource(data):
-            # Transform the response data here
-            return data
+    def get_factory(self) -> RouteFactory:
+        return self.register_mod.Factory
 
-        return [
-            transform_resource,  # For /resource/{id}
-            None                # No transformation for /items
-        ]
+    def register_routes(self):
+        self.register_mod.Factory.create_router(
+            ProxyRouteDefinition(route="/item", url_route="/todos", method="GET"))
+
+
 ```
 
-2. Create a config file (JSON or TOML) with the same name as your module directory:
+2. Create a config file TOML with the same name as your module directory:
 
-```json
-{
-    "name": "Your Proxy Module",
-    "version": "1.0.0",
-    "description": "A custom proxy module",
-    "target_url": "https://api.example.com",
-    "settings": {
-        "cache_enabled": true,
-        "timeout": 5000
-    }
-}
+```toml
+
+
+[author]
+created_by = "Your-Epic-Name"
+contributors = ["Your-Handsome-Github", "Example"]
+created_at = "2025-05-15"
+
+[mod]
+mod_name = "Funny Mod"
+mod_id = "funny_mod"
+mod_description = "A very funny Mod"
+mod_version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[mod_settings]
+global_timeout = 1000
 ```
+```
+```
+
 
 ### Loading Custom Modules
 
-In your main FastAPI application, import and use the module registration function:
+Loading a custom module is easy. In the main.py file. Simply just import the module and run the instance.
 
 ```python
-from fastapi import FastAPI
-from mods.register_mods import register_all_mods
+from core.sisyphus import Sisyphus
+from mods.example_pxy.example_pxy import ExampleMod
 
-app = FastAPI()
+s = Sisyphus()
 
-# Register all available mods
-loaded_mods = register_all_mods(app)
-print(f"Loaded {len(loaded_mods)} mods: {', '.join(loaded_mods.keys())}")
-```
+# Define your modules here.
+LoadExampleMod = ExampleMod(s)
 
-## Numba Optimization
-
-This project uses Numba for high-performance data processing:
-
-- JIT (Just-In-Time) compilation for faster execution
-- Automatic parallelization of data transformations
-- Optimized JSON request/response processing
-
-### Performance Benefits
-
-- Faster data transformations
-- Optimized numerical operations
-- Efficient handling of large data payloads
+s.run()
 
 ## Development
 
@@ -154,13 +142,6 @@ This project uses Numba for high-performance data processing:
 
 - Python 3.11+
 - FastAPI
-- Numba
-
-### Running Tests
-
-```bash
-pytest
-```
 
 ## License
 
