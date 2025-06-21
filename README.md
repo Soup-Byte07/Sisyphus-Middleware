@@ -125,12 +125,7 @@ s = Sisyphus()
 LoadExampleMod = ExampleMod(s)
 
 s.run()
-````
-```
-```
-```
-```
-```
+
 ```
 ## Development
 
