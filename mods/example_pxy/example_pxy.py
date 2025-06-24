@@ -15,7 +15,7 @@ class ExampleMod():
     def __init__(self, sisyphus: Sisyphus):
 
         # Load toml config
-        self.config = LoadedTomlConfigs(self.id).load_config("mods/example_pxy/example_pxy.toml")
+        self.config = LoadedTomlConfigs("example_pxy").load_config("mods/example_pxy/example_pxy.toml")
         self.id: str = self.config.mod.mod_id
         self.name: str = self.config.mod.mod_name
         self.description: str = self.config.mod.mod_description

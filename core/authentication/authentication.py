@@ -29,6 +29,8 @@ class BasicAuthenticationHandler(RegisterLibAuthenticationHandler):
     def create_raw_header(self):
         tokenized = b64encode(f"{self.auth_handler.username}:{self.auth_handler.password.get_secret_value()}".encode('utf-8')).decode("ascii")
         return f'Basic {tokenized}'
+    def create_b64_header(self) -> str:
+        return b64encode(f"{self.auth_handler.username}:{self.auth_handler.password.get_secret_value()}".encode('utf-8')).decode("ascii")
 
 class BearerAuthenticationHandler(RegisterLibAuthenticationHandler):
     register_name: str = "BearerAuthenticationHandler"

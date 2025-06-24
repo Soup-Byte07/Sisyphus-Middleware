@@ -64,7 +64,54 @@ class RouteFactory:
     def __init__(self, proxy: ProxyDefinition) -> None:
         self.proxy: ProxyDefinition = proxy
         self.router: Final[APIRouter] = APIRouter()
-    
+
+
+    def create_custom_router(self, proxy_route_def, _in_callback: Any = None) -> None:
+        handler = self._create_custom_handler(proxy_route_def, _in_callback)
+        route_path: str = str(self.proxy.endpoint) + str(proxy_route_def.route)
+        route_kwargs = {
+            "path": route_path,
+            "endpoint": handler,
+            "methods": [proxy_route_def.method],
+            "name": None,
+            "tags": None
+        }
+        self.router.add_api_route(**route_kwargs)
+        log_route_creation(route_path, proxy_route_def.method, message=" Custom Route")
+
+    def _create_custom_handler(self, proxy_route_def: ProxyRouteDefinition,  _in_callback:BaseModel | None = None):
+        async def handler(request: Request):
+            headers = dict(proxy_route_def.headers) if proxy_route_def.headers else {}
+            headers["User-Agent"] = "Mozilla/5.0 (compatible; ProxyBot/1.0)"
+
+            result = await _in_callback(proxy_route_def, request)
+            return result
+        return handler
+
+
+    def create_custom_router_param(self, proxy_route_def, _in_callback: Any = None) -> None:
+        handler = self._create_custom_handler(proxy_route_def, _in_callback)
+        route_path: str = str(self.proxy.endpoint) + str(proxy_route_def.route)
+        route_kwargs = {
+            "path": route_path,
+            "endpoint": handler,
+            "methods": [proxy_route_def.method],
+            "name": None,
+            "tags": None
+        }
+        self.router.add_api_route(**route_kwargs)
+        log_route_creation(route_path, proxy_route_def.method, message=" Custom Route")
+
+    def _create_custom_param_handler(self, proxy_route_def: ProxyRouteDefinition,  _in_callback:BaseModel | None = None):
+        async def handler(request: Request, **path_params: dict[str, str]):
+            headers = dict(proxy_route_def.headers) if proxy_route_def.headers else {}
+            headers["User-Agent"] = "Mozilla/5.0 (compatible; ProxyBot/1.0)"
+
+            result = await _in_callback(proxy_route_def, request, **path_params)
+            return result
+        return handler
+
+        
     def create_router_param(self, proxy_route_def: ProxyRouteDefinition, _in_callback: Any = None, _out_callback: Any=None) -> None:
         handler = self._create_handler_path_param(proxy_route_def.method, proxy_route_def, _in_callback, _out_callback)
         route_path: str = str(self.proxy.endpoint) + str(proxy_route_def.route)
