@@ -17,4 +17,5 @@ dependencies = [
     "partial>=1.0",
     "toml>=0.10.2",
     "requests>=2.32.3",
+    "stripe>=12.2.0",
 ]
