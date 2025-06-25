@@ -278,15 +278,15 @@ class RouteFactory:
         return handler
 
     def _create_requests_handler(self, method: str, proxy_route_def: ProxyRouteDefinition,  _in_callback:BaseModel | None = None, _out_callback:BaseModel | None = None):
-        def handler(request: Request):
+        async def handler(request: Request):
             url = str(str(self.proxy.target_url) + proxy_route_def.url_route)
 
-            return self.requests_request_handle(
+            return await self.requests_request_handle(
                 url, request, method, proxy_route_def, _in_callback, _out_callback
             )
         return handler
 
-    def requests_request_handle(self, url: str, request: Request, method, proxy_def_route: ProxyRouteDefinition, _in_callback=None, _out_callback=None):
+    async def requests_request_handle(self, url: str, request: Request, method, proxy_def_route: ProxyRouteDefinition, _in_callback=None, _out_callback=None):
         headers = dict(proxy_def_route.headers) if proxy_def_route.headers else {}
         headers["User-Agent"] = "Mozilla/5.0 (compatible; ProxyBot/1.0)"
         
@@ -307,11 +307,10 @@ class RouteFactory:
         
         if method in {"POST", "PUT", "PATCH"}:
             try:
-                import asyncio
-                request_body = asyncio.run(request.json()) if hasattr(request, 'json') else None
+                request_body = await request.json()
             except:
                 try:
-                    request_body = asyncio.run(request.body()) if hasattr(request, 'body') else None
+                    request_body = request.body() if hasattr(request, 'body') else None
                     if request_body:
                         request_body = self._process_request_data(request_body)
                 except:
